@@ -31,9 +31,12 @@ int currentPos = 120;
 
 HardwareSerial NEO6M(1);
 
-int altura_de_corte = 2950;
+double altura_de_corte = 3025.5;
 
 unsigned long timer = 0;
+
+String measurement = ""; // Declare a String variable to store measurements
+
 
 void setup() {
   Serial.begin(115200);
@@ -63,69 +66,58 @@ void setup() {
   Serial.println("MPU6050 calibration done!");
 }
 
+
 void loop() {
-  // Check BMP280 connection during loop
+  // ... (your existing code)
+    // Check BMP280 connection during loop
   if (!bmp.begin()) {
     Serial.println(F("Lost connection with BMP280. Check connections and I2C address."));
     while (1);
   }
 
-  Serial.print(F("Temperature = "));
-  Serial.print(bmp.readTemperature() - 8);
-  Serial.println(" °C");
-
-  Serial.print(F("Pressure = "));
-  Serial.print(bmp.readPressure() / 100.0F); // Pressure is read in Pa, convert to hPa
-  Serial.println(" hPa");
-
-  Serial.print(F("Approximate Altitude = "));
+  // Concatenate each line to the measurement variable
+  measurement += "Temperature = " + String(bmp.readTemperature() - 8) + " °C\n";
+  measurement += "Pressure = " + String(bmp.readPressure() / 100.0F) + " hPa\n";
   double altitud = bmp.readAltitude(SEALEVELPRESSURE_HPA) + 500;
-  Serial.print(altitud);
-  Serial.println(" meters");
+  measurement += "Approximate Altitude = " + String(altitud) + " meters\n";
 
   compass.read();
   byte a = compass.getAzimuth();
-
   char myArray[3];
   compass.getDirection(myArray, a);
-
-  Serial.print(F("Compass Direction = "));
-  Serial.print(myArray[0]);
-  Serial.print(myArray[1]);
-  Serial.print(myArray[2]);
-  Serial.println();
+  measurement += "Compass Direction = " + String(myArray[0]) + String(myArray[1]) + String(myArray[2]) + "\n";
 
   mpu.update();
 
   if (millis() - timer > 1000) { // print data every second
-    Serial.print(F("ACCELEROMETER X: ")); Serial.print(mpu.getAccX() * 10); Serial.print("m/s^2  ");
-    Serial.print("\tY: "); Serial.print(mpu.getAccY() * 10); Serial.print("m/s^2  ");
-    Serial.print("\tZ: "); Serial.print(mpu.getAccZ() * 10); Serial.println("m/s^2  ");
-
-    Serial.print(F("GYRO X: ")); Serial.print(mpu.getGyroX()); Serial.print(" °/s  ");
-    Serial.print("\tY: "); Serial.print(mpu.getGyroY()); Serial.print(" °/s  ");
-    Serial.print("\tZ: "); Serial.print(mpu.getGyroZ()); Serial.println(" °/s  ");
-
-    Serial.print(F("ACC ANGLE X: ")); Serial.print(mpu.getAccAngleX()); Serial.print(" °  ");
-    Serial.print("\tY: "); Serial.print(mpu.getAccAngleY()); Serial.println(" °  ");
-
-    Serial.print(F("ANGLE X: ")); Serial.print(mpu.getAngleX()); Serial.print(" °  ");
-    Serial.print("\tY: "); Serial.print(mpu.getAngleY()); Serial.print(" °  ");
-    Serial.print("\tZ: "); Serial.print(mpu.getAngleZ()); Serial.println(" °  ");
-
-
+    // Concatenate accelerometer, gyro, and angle data to the measurement variable
+    measurement += "ACCELEROMETER X: " + String(mpu.getAccX() * 10) + "m/s^2  \tY: " + String(mpu.getAccY() * 10) + "m/s^2  \tZ: " + String(mpu.getAccZ() * 10) + "m/s^2\n";
+    measurement += "GYRO X: " + String(mpu.getGyroX()) + " °/s  \tY: " + String(mpu.getGyroY()) + " °/s  \tZ: " + String(mpu.getGyroZ()) + " °/s\n";
+    measurement += "ACC ANGLE X: " + String(mpu.getAccAngleX()) + " °  \tY: " + String(mpu.getAccAngleY()) + " °\n";
+    measurement += "ANGLE X: " + String(mpu.getAngleX()) + " °  \tY: " + String(mpu.getAngleY()) + " °  \tZ: " + String(mpu.getAngleZ()) + " °\n";
     timer = millis();
   }
 
   // Read and print GPS data
   while (NEO6M.available() > 0) {
-    Serial.write(NEO6M.read());
+    char c = NEO6M.read();
+    // Serial.write(c);
+    measurement += c;
   }
 
   if (altitud >= altura_de_corte) {
     servoMotor.write(20);
+    measurement += "seguro abierto";
   }
+  if (altitud < altura_de_corte) {
+    servoMotor.write(120);
+    measurement += "seguro cerrado";
+  }
+
   delay(2000); // Wait 2 seconds before reading again
-  Serial.println(F("=====================================================\n"));
-  
+  measurement += "=====================================================\n";
+  Serial.println(measurement);
+  // Clear the contents of the measurement variable
+  measurement = "";
 }
+
