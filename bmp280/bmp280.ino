@@ -31,7 +31,7 @@ void loop() {
   }
 
   Serial.print(F("Temperatura = "));
-  Serial.print(bmp.readTemperature());
+  Serial.print(bmp.readTemperature()-8);
   Serial.println(" °C");
 
   Serial.print(F("Presión = "));
@@ -39,7 +39,7 @@ void loop() {
   Serial.println(" hPa");
 
   Serial.print(F("Altitud aproximada = "));
-  Serial.print(bmp.readAltitude(SEALEVELPRESSURE_HPA));
+  Serial.print(bmp.readAltitude(SEALEVELPRESSURE_HPA) + 500);
   Serial.println(" metros");
 
   Serial.println();
